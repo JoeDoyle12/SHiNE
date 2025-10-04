@@ -1,4 +1,4 @@
-# Much of this code was sourced from the DeepTTV project, at https://github.com/tyy-cc/DeepTTV. Their README.md is found below:
+# Much of the code for simulating TTVs and TDVs was sourced from the DeepTTV project, at https://github.com/tyy-cc/DeepTTV.Their README.md is found below:
 
 # Steps
 ### 1. Compile Grit: 
