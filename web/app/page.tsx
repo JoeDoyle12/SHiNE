@@ -1,13 +1,5 @@
   "use client";
 
-  const OWNER  = process.env.NEXT_PUBLIC_GH_OWNER ?? "owner";
-  const REPO   = process.env.NEXT_PUBLIC_GH_REPO ?? "repo";
-  const BRANCH = process.env.NEXT_PUBLIC_GH_BRANCH ?? "main";
-
-  const ZIP     = `https://github.com/${OWNER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
-  const REPOURL = `https://github.com/${OWNER}/${REPO}`;
-  const CODESP  = `https://github.com/codespaces/new?hide_repo_select=true&ref=${BRANCH}&repo=${OWNER}%2F${REPO}`;
-
   export default function Home() {
     return (
       <section className="text-center mx-auto max-w-6xl space-y-8 py-8 md:py-12">
