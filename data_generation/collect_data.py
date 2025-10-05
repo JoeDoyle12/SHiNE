@@ -14,12 +14,13 @@ import glob
 import sys 
 import re
 import math
+import matplotlib.pyplot as plt
 
 
 def normalize(list):
     arr = np.asarray(list)
-    return (arr - np.min(arr)) / (np.max(arr) - np.min(arr)) 
-    # return (arr - np.mean(arr)) / np.std(arr)
+    # return (arr - np.min(arr)) / (np.max(arr) - np.min(arr)) 
+    return (arr - np.mean(arr)) / np.std(arr)
 
 cwd = os.getcwd()
 cwd = str(cwd)
@@ -52,11 +53,13 @@ high = []
 with open(cwd + "/sim_folder_" + Folder_name + "/num_0_xPos/file_names.txt", 'r') as file:
     for line in file:
         print(line)
-        high.append(float(float(re.search(r'inont_([0-9]+(?:\.[0-9]+)?)', line.strip()).group(1)) < (10 * math.pi / 180)))
+        high.append(float(float(re.search(r'inont_([0-9]+(?:\.[0-9]+)?)', line.strip()).group(1)) > (10 * math.pi / 180)))
 print("High Inclination: ", high)
 
 data = []
+unnormed_data = []
 labels_to_output = []
+transit_lists = []
 
 for i in range(len(files)):
     file = files[i]
@@ -114,12 +117,32 @@ for i in range(len(files)):
                 transit_list, fitted_Period_days, \
                 percent_tdv, tdv_list = get_ttv_duration(transit_data)
 
+                # Cutoff short TTV/TDV lists
+                if len(TTV_list) < 70:
+                    continue
 
-                ttvs, tdvs = normalize(TTV_list), normalize(percent_tdv)
+                ttvs, tdvs = normalize(TTV_list), normalize(tdv_list)
+
+                print(fitted_Period_days)
+
+                transit_lists.append(transit_list)
+
+                # moving_avg_tdvs = np.convolve(tdvs, np.ones((5,))/5, mode='valid')
+                # print(moving_avg_tdvs)
+                # plt.xlabel('Time (days)')
+                # plt.ylabel('Normalized Deviation')
+                # plt.title('Normalized TTV and TDV vs Time')
+                # plt.plot(transit_list, ttvs, label='TTV')
+                # plt.plot(transit_list, tdvs, label='TDV')
+                # plt.legend()
+                # plt.show()
 
                 pairs = [[ttvs[k], tdvs[k]] for k in range(len(ttvs))]
+                unnormed_pairs = [[TTV_list[k], tdv_list[k]] for k in range(len(TTV_list))]
                 print("Appending: ", j)
+                print(unnormed_pairs)
                 data.append(pairs)
+                unnormed_data.append(unnormed_pairs)
                 labels_to_output.append(high[j])
 
                 # average_dur_temp = np.mean(duration_list)
@@ -142,8 +165,36 @@ for i in range(len(files)):
 
                 # print(Test_dic['TTV_list'], Test_dic['percent_tdv'])
 
+ttvs = [unnormed_data[i][j][0] for i in range(len(unnormed_data)) for j in range(len(unnormed_data[i]))]
+tdvs = [unnormed_data[i][j][1] for i in range(len(unnormed_data)) for j in range(len(unnormed_data[i]))]
+
+print(len(ttvs), len(tdvs))
+
+mean_ttvs, std_ttvs = np.mean(ttvs), np.std(ttvs)
+mean_tdvs, std_tdvs = np.mean(tdvs), np.std(tdvs)
+
+for i in range(len(unnormed_data)):
+    for j in range(len(unnormed_data[i])):
+        unnormed_data[i][j][0] = (unnormed_data[i][j][0] - mean_ttvs) / std_ttvs
+        unnormed_data[i][j][1] = (unnormed_data[i][j][1] - mean_tdvs) / std_tdvs
+    # print(transit_lists[i])
+    # print([a[0] for a in unnormed_data[i]])
+    # print([a[1] for a in unnormed_data[i]])
+    # print([a[0] for a in unnormed_data[i]])
+    # TTVs = [a[0] for a in unnormed_data[i]]
+    # TDVs = [a[1] for a in unnormed_data[i]]
+    # print(len(transit_lists[i]), len(TTVs), len(TDVs))
+    # plt.xlabel('Time (days)')
+    # plt.ylabel('Normalized Deviation')
+    # plt.title('Special Normalized TTV and TDV vs Time')
+    # plt.plot(transit_lists[i], TTVs, label='TTV')
+    # plt.plot(transit_lists[i], TDVs, label='TDV')
+    # plt.legend()
+    # plt.show()
+
+print(unnormed_data[0])
 with open(cwd + '/TTV_files_ttv/final_data.pkl', 'wb') as pkl_file:
-    pickle.dump(data, pkl_file)
+    pickle.dump(unnormed_data, pkl_file)
 
 print("Labels: ", labels_to_output)
 with open(cwd + '/TTV_files_ttv/final_labels.pkl', 'wb') as pkl_file:
