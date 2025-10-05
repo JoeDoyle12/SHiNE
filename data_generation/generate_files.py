@@ -45,7 +45,7 @@ def sample_exoplanet_radii(n_samples):
 
 USE_2013 = False # Always True as using parameters based on Nesvorny et al., 2013
 Folder_name = "TTV_TDV_Data" # folder having nbody simulation docs
-num_test = 10 # number of simulation each folder
+num_test = 500 # number of simulation each folder
 pi = math.pi
 DaysOfYear = 365.25
 

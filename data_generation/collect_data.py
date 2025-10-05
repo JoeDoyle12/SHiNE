@@ -117,10 +117,10 @@ for i in range(len(files)):
 
                 ttvs, tdvs = normalize(TTV_list), normalize(percent_tdv)
 
-                pairs = [[ttvs[i], tdvs[i]] for i in range(len(ttvs))]
-
+                pairs = [[ttvs[k], tdvs[k]] for k in range(len(ttvs))]
+                print("Appending: ", j)
                 data.append(pairs)
-                labels_to_output.append(high[i])
+                labels_to_output.append(high[j])
 
                 # average_dur_temp = np.mean(duration_list)
                 # per_tdv_temp = (duration_list - average_dur_temp)/average_dur_temp
@@ -142,10 +142,11 @@ for i in range(len(files)):
 
                 # print(Test_dic['TTV_list'], Test_dic['percent_tdv'])
 
-with open(cwd + '/TTV_files_ttv/final_data.pkl', 'ab') as pkl_file:
+with open(cwd + '/TTV_files_ttv/final_data.pkl', 'wb') as pkl_file:
     pickle.dump(data, pkl_file)
 
-with open(cwd + '/TTV_files_ttv/final_labels.pkl', 'ab') as pkl_file:
+print("Labels: ", labels_to_output)
+with open(cwd + '/TTV_files_ttv/final_labels.pkl', 'wb') as pkl_file:
     pickle.dump(labels_to_output, pkl_file)
 
 print(len(files), count)
