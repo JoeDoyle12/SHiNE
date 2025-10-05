@@ -172,7 +172,7 @@ class BiLSTMTransformerClassifier(nn.Module):
             prev = h
         # final layer -> num_labels (regression or logits)
         mlp_layers.append(nn.Linear(prev, num_labels))
-        mlp_layers.append(_get_activation('sigmoid')) # Last layer sigmoid, because we want something in the range 0-1
+        # mlp_layers.append(_get_activation('sigmoid')) # Last layer sigmoid, because we want something in the range 0-1
         self.classifier = nn.Sequential(*mlp_layers)
 
         # optional extra regression heads (dictionary of heads)

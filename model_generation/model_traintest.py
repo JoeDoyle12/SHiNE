@@ -2,16 +2,22 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
 from model_factory import build_ttvtdv_model
+from data_collector import get_data
+import numpy as np
 
 class TransitDataset(Dataset):
-    def __init__(self, X, y):
+    def __init__(self, X, y, sequence_length=135):
         """
         X: numpy or torch tensor of shape (N, seq_len, num_features)
         y: numpy or torch tensor of shape (N,)
         """
+        # print(len(X))
+        # tensors = [torch.tensor(x, dtype=torch.float32) for x in X]
+        # self.X = torch.tensor(pad_sequence(tensors, batch_first=True, padding_value=0.0))
         self.X = torch.tensor(X, dtype=torch.float32)
-        self.y = torch.tensor(y, dtype=torch.long)
+        self.y = torch.tensor(y, dtype=torch.float32)
 
     def __len__(self):
         return len(self.X)
@@ -37,25 +43,38 @@ def train_epoch(model, train_loader, val_loader, criterion, optimizer, device="c
 
 def evaluate_model(model, val_loader, criterion, device="cpu"):
     model.eval()
-    with torch.zero_grad(): # Stops gradients from being calculated, saves memory and speeds it up
-        for X, y in val_loader:
-            X, y = X.to(device), y.to(device)
-            outputs, _ = model(X)
-            val_loss = criterion(outputs.squeeze(), y.float()) / len(val_loader)
+    # with torch.zero_grad(): # Stops gradients from being calculated, saves memory and speeds it up
+    val_loss = 0
+    for X, y in val_loader:
+        X, y = X.to(device), y.to(device)
+        outputs, _ = model(X)
+        val_loss += criterion(outputs.squeeze(1), y.float()).item() * X.size(0)
+        probs = torch.sigmoid(outputs)
+        print(probs)
+        print(
+        "pred.mean", outputs.mean().item(),
+        "pred.std",  outputs.std().item(),
+        "head_w_norm", sum(p.norm().item() for p in model.classifier.parameters() if p.requires_grad),
+        )
 
-            preds = torch.round(outputs) # rounds to 0 or 1
+        preds = torch.round(outputs) # rounds to 0 or 1
 
-            # Count how many 1's were predicted correctly
-            true_positives = ((preds == 1) & (y == 1)).sum().item()
+        # Count how many 1's were predicted correctly
+        true_positives = ((preds == 1) & (y == 1)).sum().item()
 
-            p_tp = true_positives / y.sum().item()
+        p_tp = true_positives / y.sum().item()
     
-    return val_loss, p_tp # return validation loss and percent true positives
+    return val_loss / len(val_loader), p_tp # return validation loss and percent true positives
 
 
 def train_model(model, train_loader, val_loader, epochs=20, lr=1e-3, device="cpu"):
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
+    y_train = torch.cat([y for _, y in train_loader], dim=0)
+    pos = float((y_train == 1).sum())
+    neg = float((y_train == 0).sum())
+    pos_w = torch.tensor([neg / max(pos, 1.0)], device=device)
+
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_w)
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
 
     model.to(device)
 
@@ -82,12 +101,23 @@ def test_model(model, test_loader, device="cpu"):
 if __name__ == '__main__': # simple test of training capabilities
     import numpy as np
 
-    N = 500   # number of samples
-    seq_len = 30
+    seq_len = 135  # number of transits
     num_features = 2  # TTV + TDV
 
-    X = np.random.randn(N, seq_len, num_features)
-    y = [1 if X[i].sum() > 0 else 0 for i in range(N)] #np.random.randint(0, 2, size=(N,))
+
+    X, y = get_data()
+
+    N = len(X)   # number of samples
+
+    # mask = torch.zeros(N, seq_len, 2, dtype=torch.bool)
+
+    # for i in range(N):
+    #     for j in range(seq_len):
+    #         if X[i][j][0] != 0 or X[i][j][1] != 0:
+    #             continue
+    #         mask[i, j, 0] = True
+    #         mask[i, j, 1] = True
+
     print(y)
     # Train/val split
     val_split = int(0.8 * N)
@@ -95,6 +125,9 @@ if __name__ == '__main__': # simple test of training capabilities
     X_train, y_train = X[:val_split], y[:val_split]
     X_val, y_val = X[val_split:test_split], y[val_split:test_split]
     X_test, y_test = X[test_split:], y[test_split:]
+
+    print(len(X_train), len(X_val), len(X_test))
+    print(X_train)
 
     train_data = TransitDataset(X_train, y_train)
     val_data = TransitDataset(X_val, y_val)
@@ -110,7 +143,7 @@ if __name__ == '__main__': # simple test of training capabilities
     print(torch.cuda.is_available())
     # Train
     trained_model = train_model(model, train_loader, val_loader,
-                                epochs=1000, lr=1e-3,
+                                epochs=50, lr=1e-3,
                                 device="cuda" if torch.cuda.is_available() else "cpu")
     
     test_model(trained_model, test_loader, device="cuda" if torch.cuda.is_available() else "cpu")
