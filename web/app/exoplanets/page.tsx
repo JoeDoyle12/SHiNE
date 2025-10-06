@@ -51,7 +51,6 @@ function Card({ id, children }: { id: string; children: React.ReactNode }) {
   );
 }
 
-/* ── text + image side-by-side ── */
 function SideBySide({
   id,
   title,
@@ -111,7 +110,7 @@ export default function Exoplanets() {
   return (
     <div className="mx-auto max-w-5xl space-y-10 md:space-y-14">
       <Card id="intro">
-        <h1 className="text-3xl md:text-5xl font-bold !mb-3">Methods Of Exoplanet Detection</h1>
+        <h1 className="text-3xl md:text-5xl font-bold !mb-3">Methods Of Exoplanet Detection!</h1>
         <p className="!mt-0">
           Astronomers use several complementary techniques to find and characterize planets around
           other stars. Below are the three <strong>big</strong> ones: <em>Direct Imaging</em>,
